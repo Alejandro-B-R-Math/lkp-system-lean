@@ -69,4 +69,17 @@ def cut : BNTree Sequent → BNTree Sequent → Option (BNTree Sequent)
           none
   | _, _ => none
 
+def neg_left : BNTree Sequent → Option (BNTree Sequent)
+  | T@(node _ (Γ, Δ) _) =>
+    match Δ.reverse with
+    | [] => none
+    | A :: Δ' =>
+      node T (¬ₚ A :: Γ, Δ'.reverse) leaf
+  | _ => none
+
+def neg_right : BNTree Sequent → Option (BNTree Sequent)
+  | T@(node _ (A :: Γ, Δ) _) =>
+    node T (Γ, Δ ++ [¬ₚ A]) leaf
+  | _ => none
+
 end LKPRules
