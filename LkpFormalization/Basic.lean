@@ -1,4 +1,5 @@
 import LkpFormalization.BinaryTree
+import LkpFormalization.Typst
 
 inductive PropForm
   | var   : String → PropForm
@@ -38,17 +39,34 @@ instance : Coe String PropForm := ⟨fun s => var s⟩
 instance : Repr PropForm where
   reprPrec A _ := A.toString.toFormat
 
+def toTypstAux : PropForm → String
+  | var x => x
+  | tr => "top"
+  | fls => "bot"
+  | neg f => s!"not {f.toTypstAux}"
+  | conj f₁ f₂ => s!"({f₁.toTypstAux} and {f₂.toTypstAux})"
+  | disj f₁ f₂ => s!"({f₁.toTypstAux} or {f₂.toTypstAux})"
+  | impl f₁ f₂ => s!"({f₁.toTypstAux} supset {f₂.toTypstAux})"
+  | equiv f₁ f₂ => s!"({f₁.toTypstAux} equiv {f₂.toTypstAux})"
+
+instance : ToTypst PropForm where
+  toTypst := PropForm.toTypstAux
+
 end PropForm
 
 def Sequent := (List PropForm) × (List PropForm)
 
+instance : ToTypst Sequent where
+  toTypst s := (toTypst s.1) ++ " to " ++ (toTypst s.2)
+
 def Sequent.antecedent (s : Sequent) : List PropForm := s.1
 def Sequent.succedent (s : Sequent) : List PropForm := s.2
-
 
 section LKPRules
 
 open BNTree
+
+def ax (A : PropForm) : Option (BNTree Sequent) := some (BNTree.node .leaf ([A], [A]) .leaf)
 
 def weakening_left (A : PropForm) : BNTree Sequent → Option (BNTree Sequent)
   | T@(node _ (Γ, Δ) _) => node T (A :: Γ, Δ) leaf
