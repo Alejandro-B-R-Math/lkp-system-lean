@@ -51,11 +51,11 @@ section LKPRules
 open BNTree
 
 def weakening_left (A : PropForm) : BNTree Sequent → Option (BNTree Sequent)
-  | T@(node _ (Γ, Δ) _) => T.insert_right (A :: Γ, Δ)
+  | T@(node _ (Γ, Δ) _) => node T (A :: Γ, Δ) leaf
   | _ => none
 
 def weakening_right (A : PropForm) : BNTree Sequent → Option (BNTree Sequent)
-  | T@(node _ (Γ, Δ) _) => T.insert_right (Γ, Δ ++ [A])
+  | T@(node _ (Γ, Δ) _) => node T (Γ, Δ ++ [A]) leaf
   | _ => none
 
 def exchange_left (i : Nat) : BNTree Sequent → Option (BNTree Sequent)
