@@ -18,17 +18,24 @@ def insert_right (T : BNTree α) (value : α) : BNTree α :=
 def insert_left (T : BNTree α) (value : α) : BNTree α :=
   node T value leaf
 
-def BNTree.toTypstAux [ToTypst α] [DecidableEq α] : BNTree α → String
+def BNTree.toTypstAux [ToTypst α] : BNTree α → String
   | .leaf => ""
   | .node l v r =>
-    let ltyp := if l = .leaf then "" else s!"  {BNTree.toTypstAux l},\n"
-    let rtyp := if r = .leaf then "" else s!"  {BNTree.toTypstAux r},\n"
-    if ltyp = "" ∧ rtyp = "" then
+    -- Usamos match en lugar de if l = .leaf
+    let ltyp := match l with
+      | .leaf => ""
+      | _     => s!"  {BNTree.toTypstAux l},\n"
+
+    let rtyp := match r with
+      | .leaf => ""
+      | _     => s!"  {BNTree.toTypstAux r},\n"
+
+    if ltyp == "" && rtyp == "" then
       s!"{toTypst v}"
     else
       s!"rule(\n{ltyp}{rtyp}  {toTypst v}\n)"
 
-instance [ToTypst α] [DecidableEq α] : ToTypst (BNTree α) where
+instance [ToTypst α] : ToTypst (BNTree α) where
   toTypst := BNTree.toTypstAux
 
 end BNTree
