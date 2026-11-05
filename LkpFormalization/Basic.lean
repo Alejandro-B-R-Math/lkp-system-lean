@@ -58,6 +58,22 @@ def weakening_right (A : PropForm) : BNTree Sequent → Option (BNTree Sequent)
   | T@(node _ (Γ, Δ) _) => T.insert_right (Γ, Δ ++ [A])
   | _ => none
 
+def exchange_left (i : Nat) : BNTree Sequent → Option (BNTree Sequent)
+  | T@(node _ (Γ, Δ) _) =>
+    match Γ.splitAt i with
+    | (Γ₁, A :: B :: Γ₂) =>
+      node T (Γ₁ ++ (B :: A :: Γ₂), Δ) leaf
+    | _ => none
+  | _ => none
+
+def exchange_right (i : Nat) : BNTree Sequent → Option (BNTree Sequent)
+  | T@(node _ (Γ, Δ) _) =>
+    match Δ.splitAt i with
+    | (Δ₁, A :: B :: Δ₂) =>
+      node T (Γ, Δ₁ ++ (B :: A :: Δ₂)) leaf
+    | _ => none
+  | _ => none
+
 def cut : BNTree Sequent → BNTree Sequent → Option (BNTree Sequent)
   | T₁@(node _ (Γ, Δ) _), T₂@(node _ (A :: Λ, Θ) _) =>
     match Δ.reverse with
