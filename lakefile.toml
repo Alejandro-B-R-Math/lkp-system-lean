@@ -1,6 +1,6 @@
 name = "lkp-formalization"
 version = "0.1.0"
-defaultTargets = ["lkp-formalization"]
+defaultTargets = ["LkpFormalization"]
 
 [[lean_lib]]
 name = "LkpFormalization"
