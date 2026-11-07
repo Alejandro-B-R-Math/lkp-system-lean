@@ -40,6 +40,6 @@ Implement the rules of $\text{LK}^\prime$
   - [ ] Antecedent conjunction rules
   - [ ] Succedent conjunction rule
   - [x] Antecedent disjunction rule
-  - [ ] Succedent disjunction rules
+  - [x] Succedent disjunction rules
   - [ ] Implication rules
   - [x] Negation rules
