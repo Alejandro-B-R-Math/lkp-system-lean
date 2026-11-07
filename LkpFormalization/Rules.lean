@@ -63,4 +63,20 @@ def dis_left : BNTree Sequent → BNTree Sequent → Option (BNTree Sequent)
       none
   | _, _ => none
 
+def dis_right_1 (B : PropForm) : BNTree Sequent → Option (BNTree Sequent)
+  | T@(node _ (Γ, Δ) _) =>
+    match Δ.reverse with
+    | [] => none
+    | A :: Δ' =>
+      node T (Γ, Δ'.reverse ++ [A ∨ₚ B]) leaf
+  | _ => none
+
+def dis_right_2 (A : PropForm) : BNTree Sequent → Option (BNTree Sequent)
+  | T@(node _ (Γ, Δ) _) =>
+    match Δ.reverse with
+    | [] => none
+    | B :: Δ' =>
+      node T (Γ, Δ'.reverse ++ [A ∨ₚ B]) leaf
+  | _ => none
+
 end LkpFormalization
