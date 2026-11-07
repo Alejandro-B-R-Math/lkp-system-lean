@@ -1,4 +1,6 @@
 import LkpFormalization.Tactic
+import TypstInfoview
+
 
 def t₂ : BNTree Sequent :=
     lk_derive (["B", "A"], ["A"]) by
@@ -14,7 +16,5 @@ def t₃ : BNTree Sequent :=
     next
     apply_rule (ax "A")
 
-def prt_tree (t : BNTree Sequent) : IO Unit := do
-  println! (toTypst t)
-
-#eval prt_tree t₃
+set_option typst.preamble "#import \"@preview/curryst:0.6.0\": rule, prooftree, rule-set" in
+#typst t₃

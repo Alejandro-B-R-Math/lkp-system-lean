@@ -1,4 +1,4 @@
-import LkpFormalization.Typst
+import TypstInfoview
 
 inductive BNTree (α : Type u) where
   | leaf
@@ -21,13 +21,12 @@ def insert_left (T : BNTree α) (value : α) : BNTree α :=
 def BNTree.toTypstAux [ToTypst α] : BNTree α → String
   | .leaf => ""
   | .node l v r =>
-    -- Usamos match en lugar de if l = .leaf
     let ltyp := match l with
-      | .leaf => ""
+      | leaf => ""
       | _     => s!"  {BNTree.toTypstAux l},\n"
 
     let rtyp := match r with
-      | .leaf => ""
+      | leaf => ""
       | _     => s!"  {BNTree.toTypstAux r},\n"
 
     if ltyp == "" && rtyp == "" then
@@ -36,6 +35,6 @@ def BNTree.toTypstAux [ToTypst α] : BNTree α → String
       s!"rule(\n{ltyp}{rtyp}  {toTypst v}\n)"
 
 instance [ToTypst α] : ToTypst (BNTree α) where
-  toTypst := BNTree.toTypstAux
+  toTypst := fun t => "prooftree(\n  " ++ (BNTree.toTypstAux t) ++ "\n)"
 
 end BNTree

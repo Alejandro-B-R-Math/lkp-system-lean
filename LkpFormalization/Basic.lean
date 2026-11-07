@@ -1,5 +1,5 @@
 import LkpFormalization.BinaryTree
-import LkpFormalization.Typst
+import TypstInfoview
 
 inductive PropForm
   | var   : String → PropForm
@@ -115,5 +115,13 @@ def neg_right : BNTree Sequent → Option (BNTree Sequent)
   | T@(node _ (A :: Γ, Δ) _) =>
     node T (Γ, Δ ++ [¬ₚ A]) leaf
   | _ => none
+
+def dis_left : BNTree Sequent → BNTree Sequent → Option (BNTree Sequent)
+  | T₁@(node _ (A::Γ, Δ) _), T₂@(node _ (B::Γ', Δ') _) =>
+    if Γ = Γ' ∧ Δ = Δ' then
+      node T₁ ((A ∨ₚ B)::Γ, Δ) T₂
+    else
+      none
+  | _, _ => none
 
 end LKPRules

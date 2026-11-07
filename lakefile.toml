@@ -4,3 +4,8 @@ defaultTargets = ["LkpFormalization"]
 
 [[lean_lib]]
 name = "LkpFormalization"
+
+[[require]]
+name = "TypstInfoview"
+git = "https://github.com/Danelnov/typst-lean"
+rev = "master"
