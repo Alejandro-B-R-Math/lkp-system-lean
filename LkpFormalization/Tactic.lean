@@ -1,6 +1,9 @@
 import Lean
 import LkpFormalization.Basic
 import LkpFormalization.BinaryTree
+import LkpFormalization.Rules
+import LkpFormalization.Notation
+import TypstInfoview
 
 namespace LkpFormalization
 
@@ -119,8 +122,21 @@ unsafe def seqToTypstUnsafe (s : Expr) : MetaM String := do
 @[implemented_by seqToTypstUnsafe]
 opaque seqToTypst (s : Expr) : MetaM String
 
-/-- If the sequent cannot be evaluated (free variables, metavariables, ...), render
-Lean's pretty-printer output as text. -/
+/-- `toString` for a sequent (`A, B ⊢ C`) by evaluating the `ToString Sequent` instance. -/
+unsafe def seqToStringUnsafe (s : Expr) : MetaM String := do
+  let s ← instantiateMVars s
+  let e ← mkAppOptM ``ToString.toString #[some (Lean.mkConst ``Sequent), none, some s]
+  evalExpr String (Lean.mkConst ``String) e
+
+@[implemented_by seqToStringUnsafe]
+opaque seqToString (s : Expr) : MetaM String
+
+/-- A sequent rendered in a form suitable for messages; if it cannot be evaluated, use the `Expr` as-is. -/
+def ppSeq (s : Expr) : MetaM MessageData := do
+  try return toMessageData (← seqToString s)
+  catch _ => return toMessageData s
+
+/-- If the sequent cannot be evaluated (free variables, metavariables, ...), the Lean pretty-printer is drawn as text. -/
 def renderSeq (s : Expr) : MetaM String := do
   try seqToTypst s
   catch _ => return "\"" ++ Typst.escapeString s!"{← ppExpr s}" ++ "\""
@@ -184,7 +200,7 @@ def showTree (stx : Syntax) (z : Zipper Expr) : TermElabM Unit := do
     withRef stx <| logWarning m!"lk_derive: could not draw the tree: {ex.toMessageData}"
 
 declare_syntax_cat lk_tac (behavior := both)
-syntax "apply_rule " term:max (ppSpace colGt term:max)* : lk_tac
+syntax "apply_rule " term:max (ppSpace colGt lk_arg)* : lk_tac
 syntax "left"       : lk_tac
 syntax "right"      : lk_tac
 syntax "up"         : lk_tac
@@ -192,6 +208,13 @@ syntax "next"       : lk_tac
 syntax "show_state" : lk_tac
 
 syntax (name := lkDerive) "lk_derive " term:max " by " many1Indent(lk_tac) : term
+
+/-- `lk_derive A ∨ B, ¬A ⊢ B by ...`: the sequent in notation, without delimiters. -/
+syntax (name := lkDeriveSeq) "lk_derive " lk_seq " by " many1Indent(lk_tac) : term
+
+macro_rules (kind := lkDeriveSeq)
+  | `(lk_derive $s:lk_seq by $tacs*) => do
+    `(lk_derive $(← expandSeq s):term by $tacs*)
 
 def elabRuleApp (r : Term) (ss : Array Term) : TermElabM Expr := do
   let args ← ss.mapM fun s => `(BNTree.node BNTree.leaf $s BNTree.leaf)
@@ -238,7 +261,7 @@ def applyRule (r : Term) (ss : Array Term) : DerivM Unit := do
     | throwError "apply_rule: focus is not an open leaf (use `left`, `right`, or `next`)"
   let (t₁, concl, t₂) ← evalRule (← elabRuleApp r ss)
   unless (← isDefEq concl s) do
-    throwError "apply_rule: the rule's conclusion does not match the focus\n  rule:  {concl}\n  focus: {s}"
+    throwError "apply_rule: the conclusion of the rule does not match the focus\n  rule: {← ppSeq concl}\n  focus: {← ppSeq s}"
   let n := PTree.node (← toPTree t₁) s (← toPTree t₂)
   set { z with focus := n }
 
@@ -249,16 +272,18 @@ def goto (name : String) (f : Zipper Expr → Option (Zipper Expr)) : DerivM Uni
 
 def showState : DerivM Unit := do
   let z ← get
-  let focusMessage : MessageData := match z.focus with
-    | .goal s => m!"open leaf {s}"
-    | .node _ s _ => m!"node {s}"
-    | .empty => m!"(empty)"
-  let gs := z.goals.map fun s => m!"  • {s}"
-  logInfo m!"focus: {focusMessage}\nopen leaves ({gs.length}):\n{MessageData.joinSep gs "\n"}"
+  let focusMsg : MessageData ← match z.focus with
+    | .goal s => pure m!"open leaf {← ppSeq s}"
+    | .node _ s _ => pure m!"node {← ppSeq s}"
+    | .empty => pure m!"(empty)"
+  let gs ← z.goals.mapM fun s => do pure m!"  • {← ppSeq s}"
+  logInfo m!"focus: {focusMsg}\nopen leaves ({gs.length}):\n{MessageData.joinSep gs "\n"}"
 
 def evalLkTac (stx : Syntax) : DerivM Unit := withRef stx do
   match stx with
-  | `(lk_tac| apply_rule $r $ss*) => applyRule r ss
+  | `(lk_tac| apply_rule $r $ss*) =>
+    let args ← (liftMacroM (ss.mapM expandArg) : TermElabM (Array Term))
+    applyRule r args
   | `(lk_tac| left)       => goto "left"  Zipper.goLeft?
   | `(lk_tac| right)      => goto "right" Zipper.goRight?
   | `(lk_tac| up)         => goto "up"    Zipper.up?
@@ -268,7 +293,7 @@ def evalLkTac (stx : Syntax) : DerivM Unit := withRef stx do
 
 @[term_elab lkDerive] def elabLkDerive : TermElab := fun stx _ => do
   match stx with
-  | `(lk_derive $s by $tacs*) =>
+  | `(lk_derive $s:term by $tacs*) =>
     let seqTy := Lean.mkConst ``Sequent
     let s₀ ← elabTermEnsuringType s (some seqTy)
     synthesizeSyntheticMVarsNoPostponing
@@ -295,8 +320,8 @@ def evalLkTac (stx : Syntax) : DerivM Unit := withRef stx do
       match z.goals with
       | [] => PTree.toBNExpr seqTy z.toTree
       | gs =>
-        let ms := gs.map fun g => m!"⊢? {g}"
-        logErrorAt stx[2] m!"lk_derive: open leaves remain:{indentD (MessageData.joinSep ms "\n")}"
+        let ms ← gs.mapM fun g => do pure m!"⊢? {← ppSeq g}"
+        logErrorAt stx[2] m!"lk_derive: there are still open leaves:{indentD (MessageData.joinSep ms "\n")}"
         mkSorry resTy (synthetic := true)
   | _ => throwUnsupportedSyntax
 

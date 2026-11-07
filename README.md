@@ -8,15 +8,15 @@ This repository serves as supplementary material and an open-source library for 
 
 The `lk_derive` tactic displays the proof tree in the Lean Infoview after each tactic. Place the cursor on a tactic line to inspect the tree at that point in the derivation. The current focus is highlighted in orange, open goals are shown in dashed blue boxes, and closed nodes have no box.
 
-The following example, also available in [`LkpFormalization/example.lean`](LkpFormalization/example.lean), derives the sequent `A → A` using the cut rule:
+The following example, also available in [`LkpFormalization/example.lean`](LkpFormalization/example.lean), derives the sequent `A ⊢ A` using the cut rule:
 
 ```lean
 import LkpFormalization.Tactic
 import TypstInfoview
 
 def t₃ : BNTree Sequent :=
-  lk_derive (["A"], ["A"]) by
-    apply_rule cut (["A"], ["A"]) (["A"], ["A"])
+  lk_derive A ⊢ A by
+    apply_rule cut (A ⊢ A) (A ⊢ A)
     left
     apply_rule (ax "A")
     next

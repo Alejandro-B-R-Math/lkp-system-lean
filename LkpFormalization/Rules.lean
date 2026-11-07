@@ -5,7 +5,8 @@ namespace LkpFormalization
 
 open BNTree
 
-def ax (A : PropForm) : Option (BNTree Sequent) := some (BNTree.node .leaf ([A], [A]) .leaf)
+def ax (A : PropForm) : Option (BNTree Sequent) :=
+  some (BNTree.node .leaf ([A], [A]) .leaf)
 
 def weakening_left (A : PropForm) : BNTree Sequent → Option (BNTree Sequent)
   | T@(node _ (Γ, Δ) _) => node T (A :: Γ, Δ) leaf

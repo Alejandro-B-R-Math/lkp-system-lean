@@ -58,7 +58,7 @@ end PropForm
 def Sequent := (List PropForm) × (List PropForm)
 
 instance : ToTypst Sequent where
-  toTypst s := (toTypst s.1) ++ " -> " ++ (toTypst s.2)
+  toTypst s := (toTypst s.1) ++ " tack " ++ (toTypst s.2)
 
 def Sequent.antecedent (s : Sequent) : List PropForm := s.1
 def Sequent.succedent (s : Sequent) : List PropForm := s.2
