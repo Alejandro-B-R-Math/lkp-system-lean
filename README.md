@@ -25,6 +25,8 @@ def t₃ : BNTree Sequent :=
 
 In the Infoview, placing the cursor on each tactic shows the proof tree after that step. `left` moves the focus to the left open premise, and `next` moves to the next open goal. To render the completed proof tree with Typst, use the `typst` preamble and `#typst t₃` command shown in `example.lean`.
 
+> ***Note:*** Rendering the proof tree requires [Typst](https://github.com/typst/typst) to be installed locally.
+
 ## TODO
 
 Implement the rules of $\text{LK}^\prime$

@@ -1,10 +1,11 @@
 import TypstInfoview
 
+namespace LkpFormalization
+
 inductive BNTree (α : Type u) where
   | leaf
   | node (left : BNTree α) (value : α) (right : BNTree α)
   deriving Repr, DecidableEq, Inhabited
-
 
 namespace BNTree
 
@@ -38,3 +39,5 @@ instance [ToTypst α] : ToTypst (BNTree α) where
   toTypst := fun t => "prooftree(\n  " ++ (BNTree.toTypstAux t) ++ "\n)"
 
 end BNTree
+
+end LkpFormalization

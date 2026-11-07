@@ -1,6 +1,8 @@
 import LkpFormalization.Tactic
+import LkpFormalization.Rules
 import TypstInfoview
 
+open LkpFormalization
 
 def t₂ : BNTree Sequent :=
     lk_derive (["B", "A"], ["A"]) by

@@ -1,5 +1,8 @@
 import Lean
 import LkpFormalization.Basic
+import LkpFormalization.BinaryTree
+
+namespace LkpFormalization
 
 open Lean Meta Elab Term
 
@@ -90,12 +93,12 @@ closed nodes = no box. -/
 
 register_option lk.showTree : Bool := {
   defValue := true
-  descr := "Mostrar en el Infoview el árbol parcial después de cada táctica de `lk_derive`."
+  descr := "Show the partial tree in the Infoview after each `lk_derive` tactic."
 }
 
 register_option lk.curryst : String := {
   defValue := "@preview/curryst:0.6.0"
-  descr := "Paquete de Typst con el que se dibujan los árboles (se importan `rule` y `prooftree`)."
+  descr := "Typst package used to draw the trees (imports `rule` and `prooftree`)."
 }
 
 /-- How a node's sequent is rendered. -/
@@ -178,7 +181,7 @@ def showTree (stx : Syntax) (z : Zipper Expr) : TermElabM Unit := do
     let doc ← renderZipper curryst z
     Typst.display stx doc (fun c => { c with mode := "markup" }) (warn := false)
   catch ex =>
-    withRef stx <| logWarning m!"lk_derive: no se pudo dibujar el árbol: {ex.toMessageData}"
+    withRef stx <| logWarning m!"lk_derive: could not draw the tree: {ex.toMessageData}"
 
 declare_syntax_cat lk_tac (behavior := both)
 syntax "apply_rule " term:max (ppSpace colGt term:max)* : lk_tac
@@ -202,10 +205,10 @@ def evalRule (e : Expr) : MetaM (Expr × Expr × Expr) := do
   if let (``Option.some, #[_, t]) := v.getAppFnArgs then
     v ← whnf t
   else if v.isAppOf ``Option.none then
-    throwError "la regla no es aplicable a esas premisas (devolvió `none`)"
+    throwError "the rule is not applicable to those premises (returned `none`)"
   match v.getAppFnArgs with
   | (``BNTree.node, #[_, l, c, r]) => return (l, c, r)
-  | _ => throwError "la regla no se evaluó a un `BNTree.node`:{indentExpr v}"
+  | _ => throwError "the rule did not evaluate to a `BNTree.node`:{indentExpr v}"
 
 def isEmptyLeaf (e : Expr) : MetaM Bool :=
   return (← whnf e).isAppOf ``BNTree.leaf
@@ -219,11 +222,11 @@ partial def toPTree (e : Expr) : MetaM (PTree Expr) := do
       return .goal s
     else
       return .node (← toPTree l) s (← toPTree r)
-  | _ => throwError "no pude interpretar como `BNTree`:{indentExpr e}"
+  | _ => throwError "could not interpret as `BNTree`:{indentExpr e}"
 
 def PTree.toBNExpr (seqTy : Expr) : PTree Expr → MetaM Expr
   | .empty => mkAppOptM ``BNTree.leaf #[some seqTy]
-  | .goal s => throwError "hoja abierta: {s}"
+  | .goal s => throwError "open leaf: {s}"
   | .node l s r => do
     let l' ← PTree.toBNExpr seqTy l
     let r' ← PTree.toBNExpr seqTy r
@@ -232,26 +235,26 @@ def PTree.toBNExpr (seqTy : Expr) : PTree Expr → MetaM Expr
 def applyRule (r : Term) (ss : Array Term) : DerivM Unit := do
   let z ← get
   let .goal s := z.focus
-    | throwError "apply_rule: el foco no es una hoja abierta (use `left`, `right` o `next`)"
+    | throwError "apply_rule: focus is not an open leaf (use `left`, `right`, or `next`)"
   let (t₁, concl, t₂) ← evalRule (← elabRuleApp r ss)
   unless (← isDefEq concl s) do
-    throwError "apply_rule: la conclusión de la regla no coincide con el foco\n  regla: {concl}\n  foco:  {s}"
+    throwError "apply_rule: the rule's conclusion does not match the focus\n  rule:  {concl}\n  focus: {s}"
   let n := PTree.node (← toPTree t₁) s (← toPTree t₂)
   set { z with focus := n }
 
 def goto (name : String) (f : Zipper Expr → Option (Zipper Expr)) : DerivM Unit := do
   match f (← get) with
   | some z => set z
-  | none => throwError "{name}: no hay ninguna hoja abierta en esa dirección"
+  | none => throwError "{name}: there is no open leaf in that direction"
 
 def showState : DerivM Unit := do
   let z ← get
-  let foco : MessageData := match z.focus with
-    | .goal s => m!"hoja abierta {s}"
-    | .node _ s _ => m!"nodo {s}"
-    | .empty => m!"(vacío)"
+  let focusMessage : MessageData := match z.focus with
+    | .goal s => m!"open leaf {s}"
+    | .node _ s _ => m!"node {s}"
+    | .empty => m!"(empty)"
   let gs := z.goals.map fun s => m!"  • {s}"
-  logInfo m!"foco: {foco}\nhojas abiertas ({gs.length}):\n{MessageData.joinSep gs "\n"}"
+  logInfo m!"focus: {focusMessage}\nopen leaves ({gs.length}):\n{MessageData.joinSep gs "\n"}"
 
 def evalLkTac (stx : Syntax) : DerivM Unit := withRef stx do
   match stx with
@@ -293,8 +296,10 @@ def evalLkTac (stx : Syntax) : DerivM Unit := withRef stx do
       | [] => PTree.toBNExpr seqTy z.toTree
       | gs =>
         let ms := gs.map fun g => m!"⊢? {g}"
-        logErrorAt stx[2] m!"lk_derive: quedan hojas abiertas:{indentD (MessageData.joinSep ms "\n")}"
+        logErrorAt stx[2] m!"lk_derive: open leaves remain:{indentD (MessageData.joinSep ms "\n")}"
         mkSorry resTy (synthetic := true)
   | _ => throwUnsupportedSyntax
 
 instance : Repr Sequent := inferInstanceAs (Repr (List PropForm × List PropForm))
+
+end LkpFormalization
