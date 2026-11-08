@@ -6,7 +6,7 @@ import LkpFormalization.Basic
 
 Write
 ```
-A ∨ B, ¬A ⊢ B          -- or:  A ∨ B, ¬A → B   /   A ∨ B, ¬A -> B
+A ∨ B, ¬A ⊢ B
 ```
 instead of `([A ∨ₚ B, ¬ₚ A], [B])`.
 

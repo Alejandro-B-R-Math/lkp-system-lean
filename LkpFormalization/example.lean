@@ -5,10 +5,10 @@ import TypstInfoview
 open LkpFormalization
 
 def t₂ : BNTree Sequent :=
-    lk_derive B, A ⊢ A by
-  apply_rule (weakening_left "B") (A ⊢ A)
-  left
-  apply_rule (ax "A")
+  lk_derive B, A ⊢ A by
+    apply_rule (weakening_left "B") (A ⊢ A)
+    left
+    apply_rule (ax "A")
 
 def t₃ : BNTree Sequent :=
   lk_derive A ⊢ A by
